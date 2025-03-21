@@ -1,0 +1,247 @@
+CREATE TABLE departments (
+    department_id   INT PRIMARY KEY,
+    department_name VARCHAR2(50)
+);
+
+CREATE TABLE employees (
+    employee_id   INT PRIMARY KEY,
+    first_name    VARCHAR2(50),
+    last_name     VARCHAR2(50),
+    department_id INT,
+    salary        NUMBER,
+    FOREIGN KEY ( department_id )
+        REFERENCES departments ( department_id )
+);
+
+
+-- DML Əmrləri
+
+-- INSERT (Əlavə Etmək)
+BEGIN
+-- Şöbələrin əlavə edilməsi
+    INSERT INTO departments (
+        department_id,
+        department_name
+    ) VALUES ( 1,
+               'Human Resources' );
+
+    INSERT INTO departments (
+        department_id,
+        department_name
+    ) VALUES ( 2,
+               'IT' );
+-- İşçilərin əlavə edilməsi
+    INSERT INTO employees (
+        employee_id,
+        first_name,
+        last_name,
+        department_id,
+        salary
+    ) VALUES ( 1001,
+               'John',
+               'Doe',
+               1,
+               5000 );
+
+    INSERT INTO employees (
+        employee_id,
+        first_name,
+        last_name,
+        department_id,
+        salary
+    ) VALUES ( 1002,
+               'Jane',
+               'Smith',
+               2,
+               6000 );
+
+    COMMIT; -- Dəyişiklikləri tətbiq et
+END;
+/
+
+
+-- UPDATE (Yeniləmək)
+BEGIN
+-- Bir işçinin maaşını artırmaq
+    UPDATE employees
+    SET
+        salary = salary + 1000
+    WHERE
+        employee_id = 1001;
+
+    COMMIT; -- Dəyişiklikləri tətbiq et
+END;
+/
+
+
+-- DELETE (Silmək)
+BEGIN
+-- Bir işçini silmək
+    DELETE FROM employees
+    WHERE
+        employee_id = 1002;
+
+    COMMIT; -- Dəyişiklikləri tətbiq et
+END;
+/
+
+
+-- SELECT (Oxumaq)
+BEGIN
+-- İşçiləri və onların şöbələrini göstərmək
+    FOR rec IN (
+        SELECT
+            e.first_name,
+            e.last_name,
+            d.department_name
+        FROM
+                 employees e
+            JOIN departments d ON e.department_id = d.department_id
+    ) LOOP
+        dbms_output.put_line('Name: '
+                             || rec.first_name
+                             || ' '
+                             || rec.last_name
+                             || ', Department: '
+                             || rec.department_name);
+    END LOOP;
+END;
+/
+
+
+-- INSERT INTO SELECT (Məlumatları bir cədvəldən digərinə əlavə etmək)
+-- Yeni cədvəl yaradılması
+-- Struktur yaradılır, ancaq məlumat yoxdur
+CREATE TABLE backup_employees
+    AS
+        SELECT
+            *
+        FROM
+            employees
+        WHERE
+            1 = 0;
+
+BEGIN
+-- Məlumatların yeni cədvələ əlavə edilməsi
+    INSERT INTO backup_employees (
+        employee_id,
+        first_name,
+        last_name,
+        department_id,
+        salary
+    )
+        SELECT
+            employee_id,
+            first_name,
+            last_name,
+            department_id,
+            salary
+        FROM
+            employees;
+
+    COMMIT; -- Dəyişiklikləri tətbiq et
+END;
+/
+
+
+-- UPDATE ilə bir neçə sütunun yenilənməsi
+BEGIN
+-- İşçilərin şöbə və maaşını yeniləmək
+    UPDATE employees
+    SET
+        department_id = 2,
+        salary = salary + 500
+    WHERE
+        department_id = 1;
+
+    COMMIT; -- Dəyişiklikləri tətbiq et
+END;
+/
+
+
+-- DELETE ilə müəyyən şərtlərlə məlumat silmək
+BEGIN
+-- Maaşı 4000-dən az olan işçiləri silmək
+    DELETE FROM employees
+    WHERE
+        salary < 4000;
+
+    COMMIT; -- Dəyişiklikləri tətbiq et
+END;
+/
+
+
+-- MERGE (INSERT, UPDATE və DELETE əməliyyatlarını birləşdirmək)
+BEGIN
+    MERGE INTO employees e
+    USING (
+        SELECT
+            1003 AS employee_id,
+            5500 AS salary
+        FROM
+            dual
+    ) new_data ON ( e.employee_id = new_data.employee_id )
+    WHEN MATCHED THEN UPDATE
+    SET e.salary = new_data.salary
+    WHEN NOT MATCHED THEN
+    INSERT (
+        employee_id,
+        first_name,
+        last_name,
+        department_id,
+        salary )
+    VALUES
+        ( 1003,
+          'Alex',
+          'Taylor',
+          1,
+          5500 );
+
+    COMMIT; -- Dəyişiklikləri tətbiq et
+END;
+/
+
+
+-- SELECT INTO (Verilənləri dəyişənlərə saxlamaq)
+DECLARE
+    v_first_name VARCHAR2(50);
+    v_last_name  VARCHAR2(50);
+    v_salary     NUMBER;
+BEGIN
+-- Məlumatları dəyişənlərə saxlamaq
+    SELECT
+        first_name,
+        last_name,
+        salary
+    INTO
+        v_first_name,
+        v_last_name,
+        v_salary
+    FROM
+        employees
+    WHERE
+        employee_id = 1001;
+
+    dbms_output.put_line('First Name: ' || v_first_name);
+    dbms_output.put_line('Last Name: ' || v_last_name);
+    dbms_output.put_line('Salary: ' || v_salary);
+END;
+/
+
+
+-- Tranzaksiyalarla işləmək (COMMIT və ROLLBACK)
+BEGIN
+-- İşçilərin maaşlarını artırmaq
+    UPDATE employees
+    SET
+        salary = salary + 1000
+    WHERE
+        department_id = 2;
+-- Hər hansı bir səhv baş verərsə, ROLLBACK edək
+    IF SQL%rowcount = 0 THEN
+        ROLLBACK; -- Heç bir məlumat dəyişməyibsə, dəyişiklikləri geri alırıq
+    ELSE
+        COMMIT; -- Dəyişiklikləri tətbiq et
+    END IF;
+END;
+/
