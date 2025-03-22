@@ -1,0 +1,684 @@
+DROP TABLE customers CASCADE CONSTRAINTS;
+
+CREATE TABLE customers (
+    customer_id NUMBER PRIMARY KEY,
+    name        VARCHAR2(100),
+    email       VARCHAR2(100),
+    phone       VARCHAR2(20),
+    city        VARCHAR2(50)
+);
+
+SET SERVEROUTPUT ON;
+
+
+-- PL/SQL blokunda INSERT əməliyyatı
+DECLARE
+    v_id    NUMBER := 1;
+    v_name  VARCHAR2(100) := 'Orxan Əliyev';
+    v_email VARCHAR2(100) := 'orxan@example.com';
+    v_phone VARCHAR2(20) := '0501234567';
+    v_city  VARCHAR2(50) := 'Bakı';
+BEGIN
+    INSERT INTO customers (
+        customer_id,
+        name,
+        email,
+        phone,
+        city
+    ) VALUES ( v_id,
+               v_name,
+               v_email,
+               v_phone,
+               v_city );
+-- Dəyişiklikləri təsdiqləmək üçün:
+    COMMIT;
+    dbms_output.put_line('Müştəri əlavə olundu: ' || v_name);
+EXCEPTION
+    WHEN OTHERS THEN
+        dbms_output.put_line('Xəta baş verdi: ' || sqlerrm);
+        ROLLBACK;
+END;
+/
+
+SELECT
+    *
+FROM
+    customers;
+
+
+-- PL/SQL blokunda UPDATE əməliyyatı
+DECLARE
+    v_id        NUMBER := 1;
+    v_new_email VARCHAR2(100) := 'orxan.aliyev@example.com';
+BEGIN
+    UPDATE customers
+    SET
+        email = v_new_email
+    WHERE
+        customer_id = v_id;
+-- Dəyişiklikləri təsdiqləmək üçün:
+    COMMIT;
+    dbms_output.put_line('Email yeniləndi: ' || v_new_email);
+EXCEPTION
+    WHEN OTHERS THEN
+        dbms_output.put_line('Xəta baş verdi: ' || sqlerrm);
+        ROLLBACK;
+END;
+/
+
+SELECT
+    *
+FROM
+    customers;
+
+
+-- PL/SQL blokunda DELETE əməliyyatı
+DECLARE
+    v_id NUMBER := 1;
+BEGIN
+    DELETE FROM customers
+    WHERE
+        customer_id = v_id;
+-- Dəyişiklikləri təsdiqləmək üçün:
+    COMMIT;
+    dbms_output.put_line('Müştəri silindi: ' || v_id);
+EXCEPTION
+    WHEN OTHERS THEN
+        dbms_output.put_line('Xəta baş verdi: ' || sqlerrm);
+        ROLLBACK;
+END;
+/
+
+SELECT
+    *
+FROM
+    customers;
+
+
+-- PL/SQL blokunda MERGE əməliyyatı
+DECLARE
+    v_id    NUMBER := 2;
+    v_name  VARCHAR2(100) := 'Leyla Həsənova';
+    v_email VARCHAR2(100) := 'leyla@example.com';
+    v_phone VARCHAR2(20) := '0519876543';
+    v_city  VARCHAR2(50) := 'Gəncə';
+BEGIN
+    MERGE INTO customers c
+    USING (
+        SELECT
+            v_id    AS customer_id,
+            v_name  AS name,
+            v_email AS email,
+            v_phone AS phone,
+            v_city  AS city
+        FROM
+            dual
+    ) src ON ( c.customer_id = src.customer_id )
+    WHEN MATCHED THEN UPDATE
+    SET c.email = src.email
+    WHEN NOT MATCHED THEN
+    INSERT (
+        customer_id,
+        name,
+        email,
+        phone,
+        city )
+    VALUES
+        ( src.customer_id,
+          src.name,
+          src.email,
+          src.phone,
+          src.city );
+-- Dəyişiklikləri təsdiqləmək üçün:
+    COMMIT;
+    dbms_output.put_line('MERGE əməliyyatı tamamlandı.');
+EXCEPTION
+    WHEN OTHERS THEN
+        dbms_output.put_line('Xəta baş verdi: ' || sqlerrm);
+        ROLLBACK;
+END;
+/
+
+SELECT
+    *
+FROM
+    customers;
+
+DROP TABLE customers;
+
+-- Müştərilər cədvəli
+CREATE TABLE customers (
+    customer_id NUMBER PRIMARY KEY,
+    name        VARCHAR2(100),
+    email       VARCHAR2(100) UNIQUE,
+    phone       VARCHAR2(20),
+    city        VARCHAR2(50)
+);
+
+DROP TABLE orders;
+
+-- Sifarişlər cədvəli (müştərilərlə əlaqəlidir)
+CREATE TABLE orders (
+    order_id    NUMBER PRIMARY KEY,
+    customer_id NUMBER,
+    order_date  DATE,
+    amount      NUMBER(10, 2),
+    status      VARCHAR2(20),
+    FOREIGN KEY ( customer_id )
+        REFERENCES customers ( customer_id )
+);
+
+
+-- INSERT Əməliyyatı (PL/SQL Blokunda Müştəri Əlavə Etmək)
+DECLARE
+    v_id    NUMBER := 1;
+    v_name  VARCHAR2(100) := 'Tural Məmmədov';
+    v_email VARCHAR2(100) := 'tural@example.com';
+    v_phone VARCHAR2(20) := '0506543210';
+    v_city  VARCHAR2(50) := 'Sumqayıt';
+BEGIN
+    INSERT INTO customers (
+        customer_id,
+        name,
+        email,
+        phone,
+        city
+    ) VALUES ( v_id,
+               v_name,
+               v_email,
+               v_phone,
+               v_city );
+
+    COMMIT; -- Dəyişiklikləri təsdiqləyirik
+    dbms_output.put_line('Yeni müştəri əlavə olundu: ' || v_name);
+EXCEPTION
+    WHEN dup_val_on_index THEN
+        dbms_output.put_line('Xəta: Bu müştəri artıq mövcuddur.');
+    WHEN OTHERS THEN
+        dbms_output.put_line('Xəta baş verdi: ' || sqlerrm);
+        ROLLBACK;
+END;
+/
+
+SELECT
+    *
+FROM
+    customers;
+
+
+-- INSERT (PL/SQL Blokunda Müştəriyə Sifariş Yaratmaq)
+DECLARE
+    v_order_id    NUMBER := 101;
+    v_customer_id NUMBER := 1;
+    v_order_date  DATE := sysdate;
+    v_amount      NUMBER(10, 2) := 150.75;
+    v_status      VARCHAR2(20) := 'Təsdiqləndi';
+BEGIN
+    INSERT INTO orders (
+        order_id,
+        customer_id,
+        order_date,
+        amount,
+        status
+    ) VALUES ( v_order_id,
+               v_customer_id,
+               v_order_date,
+               v_amount,
+               v_status );
+
+    COMMIT;
+    dbms_output.put_line('Yeni sifariş əlavə olundu: ' || v_order_id);
+EXCEPTION
+    WHEN OTHERS THEN
+        dbms_output.put_line('Xəta baş verdi: ' || sqlerrm);
+        ROLLBACK;
+END;
+/
+
+SELECT
+    *
+FROM
+    orders;
+
+
+-- UPDATE (PL/SQL Blokunda Müştərinin Şəhərini Yeniləmək)
+DECLARE
+    v_customer_id NUMBER := 1;
+    v_new_city    VARCHAR2(50) := 'Bakı';
+BEGIN
+    UPDATE customers
+    SET
+        city = v_new_city
+    WHERE
+        customer_id = v_customer_id;
+
+    COMMIT;
+    dbms_output.put_line('Müştərinin şəhəri yeniləndi: ' || v_new_city);
+EXCEPTION
+    WHEN no_data_found THEN
+        dbms_output.put_line('Xəta: Müştəri tapılmadı.');
+    WHEN OTHERS THEN
+        dbms_output.put_line('Xəta baş verdi: ' || sqlerrm);
+        ROLLBACK;
+END;
+/
+
+SELECT
+    *
+FROM
+    customers;
+
+
+-- DELETE (PL/SQL Blokunda Müştərinin Bütün Sifarişlərini Silmək)
+DECLARE
+    v_customer_id NUMBER := 1;
+BEGIN
+    DELETE FROM orders
+    WHERE
+        customer_id = v_customer_id;
+
+    COMMIT;
+    dbms_output.put_line('Müştərinin bütün sifarişləri silindi.');
+EXCEPTION
+    WHEN OTHERS THEN
+        dbms_output.put_line('Xəta baş verdi: ' || sqlerrm);
+        ROLLBACK;
+END;
+/
+
+SELECT
+    *
+FROM
+    orders;
+
+
+-- MERGE (Müştəri Varsa Yenilə, Yoxdursa Əlavə Et)
+DECLARE
+    v_id    NUMBER := 2;
+    v_name  VARCHAR2(100) := 'Leyla Həsənova';
+    v_email VARCHAR2(100) := 'leyla@example.com';
+    v_phone VARCHAR2(20) := '0519876543';
+    v_city  VARCHAR2(50) := 'Gəncə';
+BEGIN
+    MERGE INTO customers c
+    USING (
+        SELECT
+            v_id    AS customer_id,
+            v_name  AS name,
+            v_email AS email,
+            v_phone AS phone,
+            v_city  AS city
+        FROM
+            dual
+    ) src ON ( c.customer_id = src.customer_id )
+    WHEN MATCHED THEN UPDATE
+    SET c.phone = src.phone
+    WHEN NOT MATCHED THEN
+    INSERT (
+        customer_id,
+        name,
+        email,
+        phone,
+        city )
+    VALUES
+        ( src.customer_id,
+          src.name,
+          src.email,
+          src.phone,
+          src.city );
+
+    COMMIT;
+    dbms_output.put_line('MERGE əməliyyatı tamamlandı.');
+EXCEPTION
+    WHEN OTHERS THEN
+        dbms_output.put_line('Xəta baş verdi: ' || sqlerrm);
+        ROLLBACK;
+END;
+/
+
+SELECT
+    *
+FROM
+    customers;
+
+
+-- PL/SQL Kursordan İstifadə (Müştəri Sifarişlərini Göstərmək)
+DECLARE
+    CURSOR order_cursor IS
+    SELECT
+        c.name,
+        o.order_id,
+        o.amount,
+        o.status
+    FROM
+             customers c
+        JOIN orders o ON c.customer_id = o.customer_id;
+
+    v_name     customers.name%TYPE;
+    v_order_id orders.order_id%TYPE;
+    v_amount   orders.amount%TYPE;
+    v_status   orders.status%TYPE;
+BEGIN
+    OPEN order_cursor;
+    LOOP
+        FETCH order_cursor INTO
+            v_name,
+            v_order_id,
+            v_amount,
+            v_status;
+        EXIT WHEN order_cursor%notfound;
+        dbms_output.put_line('Müştəri: '
+                             || v_name
+                             || ', Sifariş ID: '
+                             || v_order_id
+                             || ', Məbləğ: '
+                             || v_amount
+                             || ', Status: '
+                             || v_status);
+
+    END LOOP;
+
+    CLOSE order_cursor;
+END;
+/
+
+SELECT
+    *
+FROM
+    customers;
+
+SELECT
+    *
+FROM
+    orders;
+
+SELECT
+    c.name,
+    o.order_id,
+    o.amount,
+    o.status
+FROM
+         customers c
+    JOIN orders o ON c.customer_id = o.customer_id;
+
+DROP TABLE employees CASCADE CONSTRAINTS;
+
+-- İşçilər cədvəli
+CREATE TABLE employees (
+    employee_id NUMBER PRIMARY KEY,
+    full_name   VARCHAR2(100),
+    position    VARCHAR2(50),
+    salary      NUMBER(10, 2),
+    hire_date   DATE
+);
+
+DROP TABLE salary_history CASCADE CONSTRAINTS;
+
+-- Maaş tarixçəsi cədvəli (işçilərlə əlaqəlidir)
+CREATE TABLE salary_history (
+    history_id  NUMBER PRIMARY KEY,
+    employee_id NUMBER,
+    old_salary  NUMBER(10, 2),
+    new_salary  NUMBER(10, 2),
+    change_date DATE,
+    FOREIGN KEY ( employee_id )
+        REFERENCES employees ( employee_id )
+);
+
+
+-- INSERT (Yeni İşçi Əlavə Etmək)
+DECLARE
+    v_employee_id NUMBER := 101;
+    v_full_name   VARCHAR2(100) := 'Əli Əliyev';
+    v_position    VARCHAR2(50) := 'Proqramçı';
+    v_salary      NUMBER(10, 2) := 2500;
+    v_hire_date   DATE := sysdate;
+BEGIN
+    INSERT INTO employees (
+        employee_id,
+        full_name,
+        position,
+        salary,
+        hire_date
+    ) VALUES ( v_employee_id,
+               v_full_name,
+               v_position,
+               v_salary,
+               v_hire_date );
+
+    COMMIT;
+    dbms_output.put_line('Yeni işçi əlavə edildi: ' || v_full_name);
+EXCEPTION
+    WHEN OTHERS THEN
+        dbms_output.put_line('Xəta baş verdi: ' || sqlerrm);
+        ROLLBACK;
+END;
+/
+
+SELECT
+    *
+FROM
+    employees;
+
+
+-- UPDATE (İşçinin Maaşını Artırmaq və Tarixçəyə Yazmaq)
+DECLARE
+    v_employee_id NUMBER := 101;
+    v_new_salary  NUMBER(10, 2) := 3000;
+    v_old_salary  NUMBER(10, 2);
+    v_history_id  NUMBER := 1;
+BEGIN
+-- Köhnə maaşı əldə edirik
+    SELECT
+        salary
+    INTO v_old_salary
+    FROM
+        employees
+    WHERE
+        employee_id = v_employee_id;
+-- Maaşı yeniləyirik
+    UPDATE employees
+    SET
+        salary = v_new_salary
+    WHERE
+        employee_id = v_employee_id;
+-- Maaş dəyişiklik tarixçəsinə əlavə edirik
+    INSERT INTO salary_history (
+        history_id,
+        employee_id,
+        old_salary,
+        new_salary,
+        change_date
+    ) VALUES ( v_history_id,
+               v_employee_id,
+               v_old_salary,
+               v_new_salary,
+               sysdate );
+
+    COMMIT;
+    dbms_output.put_line('Maaş artırıldı: '
+                         || v_old_salary
+                         || ' → '
+                         || v_new_salary);
+EXCEPTION
+    WHEN no_data_found THEN
+        dbms_output.put_line('Xəta: İşçi tapılmadı.');
+    WHEN OTHERS THEN
+        dbms_output.put_line('Xəta baş verdi: ' || sqlerrm);
+        ROLLBACK;
+END;
+/
+
+SELECT
+    *
+FROM
+    employees;
+
+SELECT
+    *
+FROM
+    salary_history;
+
+
+-- DELETE (İşçini Silmək və Onun Maaş Tarixçəsini Təmizləmək)
+DECLARE
+    v_employee_id NUMBER := 101;
+BEGIN
+-- Əvvəlcə maaş tarixçəsini silirik
+    DELETE FROM salary_history
+    WHERE
+        employee_id = v_employee_id;
+-- Sonra işçini silirik
+    DELETE FROM employees
+    WHERE
+        employee_id = v_employee_id;
+
+    COMMIT;
+    dbms_output.put_line('İşçi və maaş tarixçəsi silindi.');
+EXCEPTION
+    WHEN OTHERS THEN
+        dbms_output.put_line('Xəta baş verdi: ' || sqlerrm);
+        ROLLBACK;
+END;
+/
+
+SELECT
+    *
+FROM
+    employees;
+
+SELECT
+    *
+FROM
+    salary_history;
+
+
+-- MERGE (İşçi Varsa Maaşı Yenilə, Yoxdursa Əlavə Et)
+DECLARE
+    v_employee_id NUMBER := 102;
+    v_full_name   VARCHAR2(100) := 'Leyla Həsənova';
+    v_position    VARCHAR2(50) := 'Analitik';
+    v_salary      NUMBER(10, 2) := 2700;
+    v_hire_date   DATE := sysdate;
+BEGIN
+    MERGE INTO employees e
+    USING (
+        SELECT
+            v_employee_id AS employee_id,
+            v_full_name   AS full_name,
+            v_position    AS position,
+            v_salary      AS salary,
+            v_hire_date   AS hire_date
+        FROM
+            dual
+    ) src ON ( e.employee_id = src.employee_id )
+    WHEN MATCHED THEN UPDATE
+    SET e.salary = src.salary
+    WHEN NOT MATCHED THEN
+    INSERT (
+        employee_id,
+        full_name,
+        position,
+        salary,
+        hire_date )
+    VALUES
+        ( src.employee_id,
+          src.full_name,
+          src.position,
+          src.salary,
+          src.hire_date );
+
+    COMMIT;
+    dbms_output.put_line('MERGE əməliyyatı tamamlandı.');
+EXCEPTION
+    WHEN OTHERS THEN
+        dbms_output.put_line('Xəta baş verdi: ' || sqlerrm);
+        ROLLBACK;
+END;
+/
+
+SELECT
+    *
+FROM
+    employees;
+
+
+-- PL/SQL Kursor (Bütün İşçiləri Siyahıla)
+DECLARE
+    CURSOR emp_cursor IS
+    SELECT
+        employee_id,
+        full_name,
+        position,
+        salary,
+        hire_date
+    FROM
+        employees;
+
+    v_employee_id employees.employee_id%TYPE;
+    v_full_name   employees.full_name%TYPE;
+    v_position    employees.position%TYPE;
+    v_salary      employees.salary%TYPE;
+    v_hire_date   employees.hire_date%TYPE;
+BEGIN
+    OPEN emp_cursor;
+    LOOP
+        FETCH emp_cursor INTO
+            v_employee_id,
+            v_full_name,
+            v_position,
+            v_salary,
+            v_hire_date;
+        EXIT WHEN emp_cursor%notfound;
+        dbms_output.put_line('ID: '
+                             || v_employee_id
+                             || ', Ad: '
+                             || v_full_name
+                             || ', Vəzifə: '
+                             || v_position
+                             || ', Maaş: '
+                             || v_salary
+                             || ', İşə qəbul tarixi: '
+                             || v_hire_date);
+
+    END LOOP;
+
+    CLOSE emp_cursor;
+END;
+/
+
+
+-- PL/SQL Kursor (Maaşı 2500-dən Yuxarı Olan İşçiləri Tapmaq)
+DECLARE
+    CURSOR high_salary_cursor IS
+    SELECT
+        full_name,
+        salary
+    FROM
+        employees
+    WHERE
+        salary > 2500;
+
+    v_full_name employees.full_name%TYPE;
+    v_salary    employees.salary%TYPE;
+BEGIN
+    OPEN high_salary_cursor;
+    LOOP
+        FETCH high_salary_cursor INTO
+            v_full_name,
+            v_salary;
+        EXIT WHEN high_salary_cursor%notfound;
+        dbms_output.put_line('İşçi: '
+                             || v_full_name
+                             || ', Maaş: '
+                             || v_salary);
+    END LOOP;
+
+    CLOSE high_salary_cursor;
+END;
+/
+
+SELECT
+    *
+FROM
+    employees;
